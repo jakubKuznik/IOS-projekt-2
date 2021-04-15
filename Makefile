@@ -1,7 +1,8 @@
 CC = gcc
 LD = gcc
 
-CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -Werror   
+CFLAGS = -g -std=c99 -pedantic -Wall -Wextra 
+#CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -Werror   
 
 all: proj2 proj2.o
 #$< jmeno první závislosti		#$@ jmeno cile 		#$^ jmena vsech zavislosti
