@@ -15,6 +15,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
+
 
 #include "proj2.h"
 
@@ -38,11 +40,41 @@ int main(int argc, char *argv[])
         goto error_4;
 
 
-    pid_ret_code = fork();
+    // fork 0 is child proces 
+    pid_ret_code = fork(); //create proces from main 
     if(pid_ret_code == 0) //Santa process runs and end in santa() function 
         santa();
     else if(pid_ret_code == -1)
         goto error_5;   
+
+
+    pid_ret_code = fork(); //Create procces from main
+    if(pid_ret_code == 0) //branch for elves 
+    {
+        for(unsigned short i = 0; i < ne; i++)
+        {
+            pid_ret_code = fork();
+            
+            if(pid_ret_code == 0) //Santa process runs and end in santa() function 
+                elf(i);
+            else if(pid_ret_code == -1)
+                goto error_5;   
+        }
+    }
+    else if(pid_ret_code > 0) // branch for  
+    {
+        for(unsigned char i = 0; i < nr; i++)
+        {
+            pid_ret_code = fork();
+            if(pid_ret_code == 0) //Santa process runs and end in santa() function 
+                reindeer(i);
+            else if(pid_ret_code == -1)
+                goto error_5;  
+        }
+    }
+    else //pid is -1
+        goto error_5;   
+
 
 
 
@@ -100,6 +132,7 @@ int santa()
 */
 int elf(const unsigned short index)
 {
+    printf("elf %d\n",index);
     exit(1);
 }
 
@@ -117,6 +150,7 @@ int elf(const unsigned short index)
 */
 int reindeer(const unsigned char index)
 {
+    printf("reinder %d\n",index);
     exit(1);
 }
 
