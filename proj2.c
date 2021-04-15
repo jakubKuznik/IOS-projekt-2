@@ -12,21 +12,114 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "proj2.h"
 
-
+/**
+ * Program is oriented to work with process using semaphore. 
+ * return 1 if there is some error. 
+ */
 int main(int argc, char *argv[])
 {
+    // Here i ll store fork() output 
+    pid_t pid_ret_code;
+    // variables indicates how many process will i create 
     short ne, nr, te, tr;
     ne = nr = te = tr = 0;
 
     if(arg_parser(argc, argv, &ne, &nr, &te, &tr) != 0)
         return 1;
-    
-    printf("hello");
+
+    FILE *f = NULL; 
+    if((f = fopen("proj2.out", "w")) == NULL)
+        goto error_4;
+
+
+    pid_ret_code = fork();
+    if(pid_ret_code == 0) //Santa process runs and end in santa() function 
+        santa();
+    else if(pid_ret_code == -1)
+        goto error_5;   
+
+
+
+    for (unsigned short i = 0; i < PROCESS_SUM ; i++) 
+        wait(NULL);
+
+    fclose(f);    
     return 0;
+
+
+// ERRORS 
+error_4:  //FILE ERROR     
+    fprintf(stderr, "Error can't open file proj2.out\n");
+    return 1;
+
+error_5: //FORK ERROR 
+    fprintf(stderr, "Error fork was no succesfull\n");
+    fclose(f);    
+    return 1;
 }
+
+
+/**
+ *  1. Po spuštění vypíše: A: Santa: going to sleep
+ *  2. Po probuzení skřítky jde pomáhat elfům---vypíše: A: Santa: helping elves
+ *  3. Poté, co pomůže skřítkům jde spát (bez ohledu na to, jestli před dílnou čekají další skřítci)
+ *      a vypíše: A: Santa: going to sleep
+ *  4. Po probuzení posledním sobem uzavře dílnu a vypíše: A: Santa: closing workshop
+ *  a pak jde ihned zapřahat soby do saní.
+ *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
+ *      a ihned proces končí.
+*/
+int santa()
+{
+    printf("Santa: going to sleep\n");
+    exit(1);
+}
+
+/**
+ * 1. Každý skřítek je unikátně identifikován číslem elfID. 0<elfID<=NE
+ * 2. Po spuštění vypíše: A: Elf elfID: started
+ * 3. Samostatnou práci modelujte voláním funkce usleep na náhodný čas v intervalu <0,TE>.
+ * 4. Když skončí samostatnou práci, potřebuje pomoc od Santy. Vypíše: A: Elf elfID: need help
+ *    a zařadí se do fronty před Santovou dílnou.
+ * 5. Pokud je třetí ve frontě před dílnou, dílna je prázdná a na dílně není cedule „Vánoce – zavřeno“,
+ *    tak společně s prvním a druhým z fronty vstoupí do dílny a vzbudí Santu.
+ * 6. Skřítek v dílně dostane pomoc a vypíše: A: Elf elfID: get help (na pořadí pomoci skřítkům v
+ *    dílně nezáleží)
+ * 7. Po obdržení pomoci ihned odchází z dílny a pokud je dílna již volná, tak při odchodu z dílny
+ *    může upozornit čekající skřítky, že už je volno (volitelné).
+ * 8. Pokud je na dveřích dílny nápis „Vánoce – zavřeno“ vypíše: A: Elf elfID: taking holidays
+ *    a proces ihned skončí.
+ * 
+ * index = elf index as it was created in loop
+*/
+int elf(const unsigned short index)
+{
+    exit(1);
+}
+
+
+/**
+ *  1. Každý sob je identifikován číslem rdID, 0<rdID<=NR2. Po spuštění vypíše: A: RD rdID: rstarted
+ *  3. Čas na dovolené modelujte voláním usleep na náhodný interval <TR/2,TR>
+ *  4. Po návratu z letní dovolené vypíše: A: RD rdID: return home
+ *      a následně čeká, než ho Santa zapřáhne k saním. Pokud je posledním sobem, který se vrátil z
+ *      dovolené, tak vzbudí Santu.
+ *  5. Po zapřažení do saní vypíše: A: RD rdID: get hitched
+ *      a následně proces končí.
+ *
+ *  index = reindeer index as it was created in loop
+*/
+int reindeer(const unsigned char index)
+{
+    exit(1);
+}
+
 
 
 /**
