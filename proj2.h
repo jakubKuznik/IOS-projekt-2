@@ -4,6 +4,19 @@
 // Compiled:    gcc 9.9.3.0
 // header file for proj2.c
 
+/*******SEMAPHORES**********/
+// semaphore names 
+#define SEM_SANTA "/xkuzni04_ios_projekt2_santa"
+#define SEM_RD "/xkuzni04_ios_projekt2_rd"
+#define SEM_ELF "/xkuzni04_ios_projekt2_elf"
+#define SEM_SHARED_MEM "/xkuzni04_ios_projekt2_shared_mem"
+
+sem_t *sem_santa;   //semaphore for santa
+sem_t *sem_rd;      //rd semaphore 
+sem_t *sem_elf;     //elf semaphore 
+sem_t *shared_mem;  //semaphore for entering shared memory
+/**************************/
+
 // Postion in arguments 
 #define NE 1
 #define NR 2

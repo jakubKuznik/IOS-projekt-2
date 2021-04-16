@@ -16,9 +16,10 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
-
+#include <semaphore.h>
 
 #include "proj2.h"
+
 
 /**
  * Program is oriented to work with process using semaphore. 
@@ -39,13 +40,20 @@ int main(int argc, char *argv[])
     if((f = fopen("proj2.out", "w")) == NULL)
         goto error_4;
 
+    //SEMAPHORE INITIALIZATION
+    /*
+    sem_santa = sem_open(sem_santa, ) ;   
+    sem_rd;       
+    sem_elf;      
+    sem_shared_mem;  
+    */
 
     // fork 0 is child proces 
     pid_ret_code = fork(); //create proces from main 
     if(pid_ret_code == 0) //Santa process runs and end in santa() function 
         santa();
     else if(pid_ret_code == -1)
-        goto error_5;   
+        goto error_5;  
 
 
     pid_ret_code = fork(); //Create procces from main
@@ -132,7 +140,7 @@ int santa()
 */
 int elf(const unsigned short index)
 {
-    printf("elf %d\n",index);
+    printf("A: Elf %d: rstarted\n",index);
     exit(1);
 }
 
@@ -150,7 +158,7 @@ int elf(const unsigned short index)
 */
 int reindeer(const unsigned char index)
 {
-    printf("reinder %d\n",index);
+    printf("A: RD %d: rstarted\n",index);
     exit(1);
 }
 
