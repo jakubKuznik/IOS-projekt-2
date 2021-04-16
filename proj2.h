@@ -5,16 +5,12 @@
 // header file for proj2.c
 
 /*******SEMAPHORES**********/
-// semaphore names 
+// semaphore names in system
 #define SEM_SANTA "/xkuzni04_ios_projekt2_santa"
 #define SEM_RD "/xkuzni04_ios_projekt2_rd"
 #define SEM_ELF "/xkuzni04_ios_projekt2_elf"
 #define SEM_SHARED_MEM "/xkuzni04_ios_projekt2_shared_mem"
 
-sem_t *sem_santa;   //semaphore for santa
-sem_t *sem_rd;      //rd semaphore 
-sem_t *sem_elf;     //elf semaphore 
-sem_t *shared_mem;  //semaphore for entering shared memory
 /**************************/
 
 // Postion in arguments 
@@ -32,10 +28,21 @@ sem_t *shared_mem;  //semaphore for entering shared memory
 #define MIN_NE_NR 1
 #define MIN_TE_RE 0
 
-
 // 1 stands for santa process 
 #define PROCESS_SUM (1 + nr + ne)
 
+
+/**
+ * Create semaphores using sem_open()
+ * return false if not succesfull  
+ * Uses some #DEFINES proj2.h
+ */
+bool semaphore_constructor();
+
+/**
+ * Close semaphores.
+ */
+void semaphore_destructor();
 
 /**
  * Parse arguments. 

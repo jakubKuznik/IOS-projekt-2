@@ -1,11 +1,13 @@
 CC = gcc
 LD = gcc
 
-CFLAGS = -g -std=c99 -pedantic -Wall -Wextra 
-#CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -Werror   
+CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -lpthread
+#CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -Werror -lpthread   
 
 all: proj2 proj2.o
 #$< jmeno první závislosti		#$@ jmeno cile 		#$^ jmena vsech zavislosti
+
+FILES = proj2.c proj2.h Makefile
 
 ############## proj2 ###############
 proj2: proj2.o
@@ -24,3 +26,6 @@ git:
 	sudo git add *.c *.h Makefile
 	sudo git commit -m "Update."
 	sudo git push
+
+merlin:
+	scp -r $(FILES) xkuzni04@merlin.fit.vutbr.cz:/homes/eva/xk/xkuzni04/ios/proj2

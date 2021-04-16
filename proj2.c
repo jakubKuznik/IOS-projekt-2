@@ -17,9 +17,16 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <semaphore.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "proj2.h"
 
+// global semaphore variables 
+sem_t *sem_santa;   //semaphore for santa
+sem_t *sem_rd;      //rd semaphore 
+sem_t *sem_elf;     //elf semaphore 
+sem_t *sem_shared_mem;  //semaphore for entering shared memory
 
 /**
  * Program is oriented to work with process using semaphore. 
@@ -41,12 +48,8 @@ int main(int argc, char *argv[])
         goto error_4;
 
     //SEMAPHORE INITIALIZATION
-    /*
-    sem_santa = sem_open(sem_santa, ) ;   
-    sem_rd;       
-    sem_elf;      
-    sem_shared_mem;  
-    */
+    if((semaphore_constructor) == false)
+        goto error_6;
 
     // fork 0 is child proces 
     pid_ret_code = fork(); //create proces from main 
@@ -100,10 +103,53 @@ error_4:  //FILE ERROR
 
 error_5: //FORK ERROR 
     fprintf(stderr, "Error fork was no succesfull\n");
+    semaphore_destructor();
     fclose(f);    
     return 1;
+
+error_6: //SEMAPHORE ERROR 
+    fprintf(stderr, "Error semaphore creating.\n");
+    semaphore_destructor();
+    fclose(f);    
+    return 1;
+
+
 }
 
+
+/**
+ * Close semaphores.
+ */
+void semaphore_destructor()
+{
+    sem_unlink(SEM_SANTA);
+    sem_unlink(SEM_RD);
+    sem_unlink(SEM_ELF);
+    sem_unlink(SEM_SHARED_MEM);
+}
+
+/**
+ * Create semaphores using sem_open()
+ * return false if not succesfull  
+ * Uses some #DEFINES proj2.h
+ */
+bool semaphore_constructor()
+{   
+    sem_santa = sem_open(SEM_SANTA, O_CREAT, 0666, 0);   
+    sem_rd = sem_open(SEM_RD, O_CREAT, 0666, 0);   
+    sem_elf = sem_open(SEM_ELF, O_CREAT, 0666, 0);   
+    sem_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT, 0666, 0);   
+
+    // If one of the sem_open failed 
+    if( sem_santa == SEM_FAILED || \
+        sem_rd == SEM_FAILED    || \
+        sem_elf == SEM_FAILED   || \
+        sem_shared_mem == SEM_FAILED)
+    {
+        return false;
+    }
+    return true;
+} 
 
 /**
  *  1. Po spuštění vypíše: A: Santa: going to sleep
