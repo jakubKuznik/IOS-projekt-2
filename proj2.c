@@ -3,9 +3,7 @@
 // Author:      Jakub Kuzník, FIT
 // Compiled:    gcc 9.9.3.0
 
-/* start 
-    ./proj2 NE NR TE TR 
-*/
+// ./proj2 NE NR TE TR 
 
 #include <stdlib.h>
 #include <stdio.h>
