@@ -5,25 +5,12 @@
 
 // ./proj2 NE NR TE TR 
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-#include <ctype.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/mman.h>
-#include <semaphore.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-
 #include "proj2.h"
 
 // global semaphore variables 
-sem_t *sem_santa;   //semaphore for santa
-sem_t *sem_rd;      //rd semaphore 
-sem_t *sem_elf;     //elf semaphore 
+sem_t *sem_santa;       //semaphore for santa
+sem_t *sem_rd;          //rd semaphore 
+sem_t *sem_elf;         //elf semaphore 
 sem_t *sem_shared_mem;  //semaphore for entering shared memory
 
 /**
@@ -45,9 +32,15 @@ int main(int argc, char *argv[])
     if((f = fopen("proj2.out", "w")) == NULL)
         goto error_4;
 
-    //SEMAPHORE INITIALIZATION
-    if((semaphore_constructor) == false)
-        goto error_6;
+    //semaphore initialization
+    if((semaphore_constructor()) == false)
+        goto error_6; //if not succes 
+
+    // shared memory initialization
+    if((shared_mem_constructor()) == false)
+        goto error_7; //if not succes
+    
+
 
     // fork 0 is child proces 
     pid_ret_code = fork(); //create proces from main 
@@ -90,6 +83,9 @@ int main(int argc, char *argv[])
     for (unsigned short i = 0; i < PROCESS_SUM ; i++) 
         wait(NULL);
 
+    if((shared_mem_destructor()) == false)
+        goto error_8;
+    semaphore_destructor();
     fclose(f);    
     return 0;
 
@@ -111,9 +107,45 @@ error_6: //SEMAPHORE ERROR
     fclose(f);    
     return 1;
 
-
+error_7: //MMAP ERROR
+    fprintf(stderr, "Error mmap failed.\n");
+    semaphore_destructor();
+    fclose(f);    
+    return 1;
+error_8: //MUN_MAP ERROR
+    fprintf(stderr, "Error munmap failed.\n");
+    semaphore_destructor();
+    fclose(f);    
+    return 1;
 }
 
+
+/**
+ * Alocate shared memory 
+ * return true if succes 
+ * return false if not  
+ */
+bool shared_mem_constructor()
+{
+    if((shared_mem = mmap(NULL, sizeof(shared_mem_t), PROT_READ | PROT_WRITE, MAP_SHARED \
+    | MAP_ANONYMOUS, SH_MEM_ID, 0)) == MAP_FAILED)
+        return false;
+    
+    shared_mem->elf_count = 0;
+    shared_mem->rein_count = 0;
+    return true;
+}
+
+/**
+ * Dealocate shared memory 
+ * retunr false if not succes
+ */
+bool shared_mem_destructor()
+{
+    if(munmap(shared_mem, sizeof(shared_mem_t)))
+        return false;
+    return true;
+}
 
 /**
  * Close semaphores.
@@ -144,6 +176,9 @@ bool semaphore_constructor()
         sem_elf == SEM_FAILED   || \
         sem_shared_mem == SEM_FAILED)
     {
+/**
+ * 
+ */
         return false;
     }
     return true;

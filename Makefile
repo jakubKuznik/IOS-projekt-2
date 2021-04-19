@@ -1,7 +1,7 @@
 CC = gcc
 LD = gcc
 
-CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -pthread -lrt
+CFLAGS = -g -std=gnu99 -pedantic -Wall -Wextra -pthread -lrt
 #CFLAGS = -g -std=c99 -pedantic -Wall -Wextra -Werror -lpthread   
 
 all: proj2 proj2.o

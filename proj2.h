@@ -4,6 +4,34 @@
 // Compiled:    gcc 9.9.3.0
 // header file for proj2.c
 
+// Included libraries 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include <ctype.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/mman.h>
+#include <semaphore.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
+
+
+/*******SHARED MEMORY*******/
+typedef struct shared
+{
+    int rein_count; //Count how many reindeers are ready 
+    int elf_count;      
+}shared_mem_t;
+
+shared_mem_t *shared_mem = NULL; //Shared memory for all procces
+#define SH_MEM_ID -1
+/***************************/
+
+
 /*******SEMAPHORES**********/
 // semaphore names in system
 #define SEM_SANTA "/xkuzni04_ios_projekt2_santa"
@@ -31,6 +59,12 @@
 // 1 stands for santa process 
 #define PROCESS_SUM (1 + nr + ne)
 
+/**
+ * Alocate shared memory 
+ * return true if succes 
+ * return false if not  
+ */
+bool shared_mem_constructor();
 
 /**
  * Create semaphores using sem_open()
@@ -38,6 +72,13 @@
  * Uses some #DEFINES proj2.h
  */
 bool semaphore_constructor();
+
+
+/**
+ * Dealocate shared memory 
+ * retunr false if not succes
+ */
+bool shared_mem_destructor();
 
 /**
  * Close semaphores.
