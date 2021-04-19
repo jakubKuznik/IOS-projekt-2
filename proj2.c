@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     // fork 0 is child proces 
     pid_ret_code = fork(); //create proces from main 
     if(pid_ret_code == 0) //Santa process runs and end in santa() function 
-        santa();
+        santa(f, nr);
     else if(pid_ret_code == -1)
         goto error_5;  
 
@@ -80,8 +80,6 @@ int main(int argc, char *argv[])
     }
     else //pid is -1
         goto error_5;   
-
-    printf("pohoda");
 
 
 
@@ -135,13 +133,27 @@ error_8: //MUN_MAP ERROR
  *  a pak jde ihned zapřahat soby do saní.
  *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
  *      a ihned proces končí.
+ * 
+ *  f = output file 
+ *  nr = number of reindeers 
 */
-int santa()
+int santa(FILE *f, short nr)
 {
-    printf("Santa: going to sleep\n");
+    printf("A: Santa: going to sleep\n");
     sem_wait(SEM_santa);
 
+    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+    if(shared_mem->rein_count == nr) // rn woke me up 
+    {
+        printf("A: Santa: closing workshop\n");
+        for(int i = 0; i < nr; i++) //hitch reindeer 
+        {
+            sem_post(SEM_rd);
+        }
+        printf("A: Santa: Christmas started\n");
 
+    }
+    sem_post(SEM_shared_mem);
     exit(1);
 }
 
@@ -193,22 +205,18 @@ int reindeer(FILE *f, unsigned char index, short tr, short nr)
     printf("A: RD %d: return home\n",index);
 
 
-    sem_post(SEM_santa);
-
-    printf("\n %d, %d \n",shared_mem->rein_count, (tr -1 ));
     sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
-    
     shared_mem->rein_count++; // plus_one
     
-    printf("\n %d, %d ",shared_mem->rein_count, (tr -1 ));
-    if(shared_mem->rein_count == (tr-1))
-        sem_post(SEM_santa);
+    if(shared_mem->rein_count == nr)
+        sem_post(SEM_santa);//if there is enought rn for wakeup santa 
     
     sem_post(SEM_shared_mem);
 
+    // wait until all rd procces join 
+    sem_wait(SEM_rd);
 
-
-
+    printf("A: RD %d: get hitched\n",index);
     exit(1);
 }
 
@@ -259,11 +267,11 @@ void semaphore_destructor()
  */
 bool semaphore_constructor()
 {   
-    SEM_santa = sem_open(SEM_SANTA, O_CREAT, 0666, 0);   
-    SEM_rd = sem_open(SEM_RD, O_CREAT, 0666, 0);   
-    SEM_elf = sem_open(SEM_ELF, O_CREAT, 0666, 0);   
-    SEM_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT, 0666, 1);   
-    SEM_output_file = sem_open(SEM_OUTPUT_FILE, O_CREAT, 0666, 0);   
+    SEM_santa = sem_open(SEM_SANTA, O_CREAT | O_EXCL, 0666, 0);   
+    SEM_rd = sem_open(SEM_RD, O_CREAT | O_EXCL, 0666, 0);   
+    SEM_elf = sem_open(SEM_ELF, O_CREAT | O_EXCL, 0666, 0);   
+    SEM_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT | O_EXCL, 0666, 1);   
+    SEM_output_file = sem_open(SEM_OUTPUT_FILE, O_CREAT | O_EXCL, 0666, 0);   
 
     // If one of the sem_open failed 
     if( SEM_santa       == SEM_FAILED || \

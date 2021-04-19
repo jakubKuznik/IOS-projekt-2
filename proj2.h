@@ -119,7 +119,7 @@ bool is_number(char *str);
  *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
  *      a ihned proces končí.
 */
-int santa();
+int santa(FILE *f, short nr);
 
 
 /**
