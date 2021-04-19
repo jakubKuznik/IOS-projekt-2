@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
     // shared memory initialization
     if((shared_mem_constructor()) == false)
         goto error_7; //if not succes
-    
 
 
     // fork 0 is child proces 
@@ -61,7 +60,7 @@ int main(int argc, char *argv[])
             pid_ret_code = fork();
             
             if(pid_ret_code == 0) //Santa process runs and end in santa() function 
-                elf(i);
+                elf(f, i, ne, te);
             else if(pid_ret_code == -1)
                 goto error_5;   
         }
@@ -142,18 +141,35 @@ int santa(FILE *f, short nr)
     printf("A: Santa: going to sleep\n");
     sem_wait(SEM_santa);
 
-    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
-    if(shared_mem->rein_count == nr) // rn woke me up 
+    while (true) //reinders are not ready
     {
-        printf("A: Santa: closing workshop\n");
-        for(int i = 0; i < nr; i++) //hitch reindeer 
+        sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+        if(shared_mem->rein_count == nr) // rn woke me up 
         {
-            sem_post(SEM_rd);
+            printf("A: Santa: closing workshop\n");
+            for(int i = 0; i < nr; i++) //hitch reindeer 
+            {
+                sem_post(SEM_rd);
+            }
+            printf("A: Santa: Christmas started\n");
+            break;
         }
-        printf("A: Santa: Christmas started\n");
-
+        else if(shared_mem->elf_count > 2) // if there are about 3 elfes in row 
+        {
+            printf("A: Santa: helping elves\n");
+            for(int i = 0; i < 3; i++)
+            {
+                sem_post(SEM_elf);
+                shared_mem->elf_count--;
+            
+            }
+            printf("A: Santa: going to sleep\n");
+        }
+        sem_post(SEM_shared_mem);
     }
     sem_post(SEM_shared_mem);
+    
+
     exit(1);
 }
 
@@ -172,11 +188,33 @@ int santa(FILE *f, short nr)
  * 8. Pokud je na dveřích dílny nápis „Vánoce – zavřeno“ vypíše: A: Elf elfID: taking holidays
  *    a proces ihned skončí.
  * 
+ * f = output file 
  * index = elf index as it was created in loop
+ * ne = number of elfs
+ * te = elf timer
 */
-int elf(const unsigned short index)
+int elf(FILE *f ,unsigned short index, short ne, short te)
 {
-    printf("A: Elf %d: rstarted\n",index);
+    printf("A: Elf %d: started\n",index);
+    
+    srand(time(NULL) * getpid());
+    usleep(rand() % (te * 1000 + 1)); //elf works alone 
+
+    printf("A: Elf %d: need help\n",index);
+
+    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+    
+    shared_mem->elf_count++;
+    if(shared_mem->elf_count > 2) //if there are 3 elfs waiting 
+        sem_post(SEM_santa);
+     
+    sem_post(SEM_shared_mem);
+
+    sem_wait(SEM_elf);
+
+
+
+
     exit(1);
 }
 
@@ -284,9 +322,6 @@ bool semaphore_constructor()
     }
     return true;
 } 
-
-
-
 
 /**
  * Parse arguments. 

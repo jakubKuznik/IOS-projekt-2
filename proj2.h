@@ -139,7 +139,7 @@ int santa(FILE *f, short nr);
  * 
  * index = elf index as it was created in loop
 */
-int elf(const unsigned short index);
+int elf(FILE *f ,unsigned short index, short ne, short te);
 
 
 /**
