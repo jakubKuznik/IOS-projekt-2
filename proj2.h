@@ -18,6 +18,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
 
 
 /*******SHARED MEMORY*******/
@@ -27,7 +28,7 @@ typedef struct shared
     int elf_count;      
 }shared_mem_t;
 
-shared_mem_t *shared_mem = NULL; //Shared memory for all procces
+
 #define SH_MEM_ID -1
 /***************************/
 
@@ -38,6 +39,7 @@ shared_mem_t *shared_mem = NULL; //Shared memory for all procces
 #define SEM_RD "/xkuzni04_ios_projekt2_rd"
 #define SEM_ELF "/xkuzni04_ios_projekt2_elf"
 #define SEM_SHARED_MEM "/xkuzni04_ios_projekt2_shared_mem"
+#define SEM_OUTPUT_FILE "/xkuzni04_ios_projekt2_output_file"
 
 /**************************/
 
@@ -151,4 +153,4 @@ int elf(const unsigned short index);
  *
  *  index = reindeer index as it was created in loop
 */
-int reindeer(const unsigned char index);
+int reindeer(FILE *f, unsigned char index, short tr, short nr);

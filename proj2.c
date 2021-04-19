@@ -8,13 +8,16 @@
 #include "proj2.h"
 
 // global semaphore variables 
-sem_t *sem_santa;       //semaphore for santa
-sem_t *sem_rd;          //rd semaphore 
-sem_t *sem_elf;         //elf semaphore 
-sem_t *sem_shared_mem;  //semaphore for entering shared memory
+sem_t *SEM_santa;       //semaphore for santa
+sem_t *SEM_rd;          //rd semaphore 
+sem_t *SEM_elf;         //elf semaphore 
+sem_t *SEM_shared_mem;  //semaphore for entering shared memory
+sem_t *SEM_output_file; //semaphore for output file printing 
+
+shared_mem_t *shared_mem = NULL; //Shared memory for all procces
 
 /**
- * Program is oriented to work with process using semaphore. 
+ * Program is oriented to work with process using semaphores. 
  * return 1 if there is some error. 
  */
 int main(int argc, char *argv[])
@@ -62,6 +65,7 @@ int main(int argc, char *argv[])
             else if(pid_ret_code == -1)
                 goto error_5;   
         }
+        exit(0); //I just want one main that procces was just for generating  
     }
     else if(pid_ret_code > 0) // branch for  
     {
@@ -69,7 +73,7 @@ int main(int argc, char *argv[])
         {
             pid_ret_code = fork();
             if(pid_ret_code == 0) //Santa process runs and end in santa() function 
-                reindeer(i);
+                reindeer(f, i, tr, nr);
             else if(pid_ret_code == -1)
                 goto error_5;  
         }
@@ -77,6 +81,7 @@ int main(int argc, char *argv[])
     else //pid is -1
         goto error_5;   
 
+    printf("pohoda");
 
 
 
@@ -117,6 +122,94 @@ error_8: //MUN_MAP ERROR
     semaphore_destructor();
     fclose(f);    
     return 1;
+
+}
+
+
+/**
+ *  1. Po spuštění vypíše: A: Santa: going to sleep
+ *  2. Po probuzení skřítky jde pomáhat elfům---vypíše: A: Santa: helping elves
+ *  3. Poté, co pomůže skřítkům jde spát (bez ohledu na to, jestli před dílnou čekají další skřítci)
+ *      a vypíše: A: Santa: going to sleep
+ *  4. Po probuzení posledním sobem uzavře dílnu a vypíše: A: Santa: closing workshop
+ *  a pak jde ihned zapřahat soby do saní.
+ *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
+ *      a ihned proces končí.
+*/
+int santa()
+{
+    printf("Santa: going to sleep\n");
+    sem_wait(SEM_santa);
+
+
+    exit(1);
+}
+
+/**
+ * 1. Každý skřítek je unikátně identifikován číslem elfID. 0<elfID<=NE
+ * 2. Po spuštění vypíše: A: Elf elfID: started
+ * 3. Samostatnou práci modelujte voláním funkce usleep na náhodný čas v intervalu <0,TE>.
+ * 4. Když skončí samostatnou práci, potřebuje pomoc od Santy. Vypíše: A: Elf elfID: need help
+ *    a zařadí se do fronty před Santovou dílnou.
+ * 5. Pokud je třetí ve frontě před dílnou, dílna je prázdná a na dílně není cedule „Vánoce – zavřeno“,
+ *    tak společně s prvním a druhým z fronty vstoupí do dílny a vzbudí Santu.
+ * 6. Skřítek v dílně dostane pomoc a vypíše: A: Elf elfID: get help (na pořadí pomoci skřítkům v
+ *    dílně nezáleží)
+ * 7. Po obdržení pomoci ihned odchází z dílny a pokud je dílna již volná, tak při odchodu z dílny
+ *    může upozornit čekající skřítky, že už je volno (volitelné).
+ * 8. Pokud je na dveřích dílny nápis „Vánoce – zavřeno“ vypíše: A: Elf elfID: taking holidays
+ *    a proces ihned skončí.
+ * 
+ * index = elf index as it was created in loop
+*/
+int elf(const unsigned short index)
+{
+    printf("A: Elf %d: rstarted\n",index);
+    exit(1);
+}
+
+
+/**
+ *  1. Každý sob je identifikován číslem rdID, 0<rdID<=NR2. Po spuštění vypíše: A: RD rdID: rstarted
+ *  3. Čas na dovolené modelujte voláním usleep na náhodný interval <TR/2,TR>
+ *  4. Po návratu z letní dovolené vypíše: A: RD rdID: return home
+ *      a následně čeká, než ho Santa zapřáhne k saním. Pokud je posledním sobem, který se vrátil z
+ *      dovolené, tak vzbudí Santu.
+ *  5. Po zapřažení do saní vypíše: A: RD rdID: get hitched
+ *      a následně proces končí.
+ *
+ *  file = output file 
+ *  index = reindeer index as it was created in loop
+ *  tr = maximum in random time that sob have to wait 
+ *  nr = number of reindeer created 
+*/
+int reindeer(FILE *f, unsigned char index, short tr, short nr)
+{
+    printf("A: RD %d: rstarted\n",index);
+    
+    srand(time(NULL) * getpid());
+    usleep(rand() % (tr*MAX_TE_RE - (tr*MAX_TE_RE)/2 + 1) + (tr*MAX_TE_RE)/1);
+
+    printf("A: RD %d: return home\n",index);
+
+
+    sem_post(SEM_santa);
+
+    printf("\n %d, %d \n",shared_mem->rein_count, (tr -1 ));
+    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+    
+    shared_mem->rein_count++; // plus_one
+    
+    printf("\n %d, %d ",shared_mem->rein_count, (tr -1 ));
+    if(shared_mem->rein_count == (tr-1))
+        sem_post(SEM_santa);
+    
+    sem_post(SEM_shared_mem);
+
+
+
+
+    exit(1);
 }
 
 
@@ -156,6 +249,7 @@ void semaphore_destructor()
     sem_unlink(SEM_RD);
     sem_unlink(SEM_ELF);
     sem_unlink(SEM_SHARED_MEM);
+    sem_unlink(SEM_OUTPUT_FILE);
 }
 
 /**
@@ -165,81 +259,24 @@ void semaphore_destructor()
  */
 bool semaphore_constructor()
 {   
-    sem_santa = sem_open(SEM_SANTA, O_CREAT, 0666, 0);   
-    sem_rd = sem_open(SEM_RD, O_CREAT, 0666, 0);   
-    sem_elf = sem_open(SEM_ELF, O_CREAT, 0666, 0);   
-    sem_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT, 0666, 0);   
+    SEM_santa = sem_open(SEM_SANTA, O_CREAT, 0666, 0);   
+    SEM_rd = sem_open(SEM_RD, O_CREAT, 0666, 0);   
+    SEM_elf = sem_open(SEM_ELF, O_CREAT, 0666, 0);   
+    SEM_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT, 0666, 1);   
+    SEM_output_file = sem_open(SEM_OUTPUT_FILE, O_CREAT, 0666, 0);   
 
     // If one of the sem_open failed 
-    if( sem_santa == SEM_FAILED || \
-        sem_rd == SEM_FAILED    || \
-        sem_elf == SEM_FAILED   || \
-        sem_shared_mem == SEM_FAILED)
+    if( SEM_santa       == SEM_FAILED || \
+        SEM_rd          == SEM_FAILED || \
+        SEM_elf         == SEM_FAILED || \
+        SEM_output_file == SEM_FAILED || \
+        SEM_shared_mem  == SEM_FAILED)
     {
-/**
- * 
- */
         return false;
     }
     return true;
 } 
 
-/**
- *  1. Po spuštění vypíše: A: Santa: going to sleep
- *  2. Po probuzení skřítky jde pomáhat elfům---vypíše: A: Santa: helping elves
- *  3. Poté, co pomůže skřítkům jde spát (bez ohledu na to, jestli před dílnou čekají další skřítci)
- *      a vypíše: A: Santa: going to sleep
- *  4. Po probuzení posledním sobem uzavře dílnu a vypíše: A: Santa: closing workshop
- *  a pak jde ihned zapřahat soby do saní.
- *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
- *      a ihned proces končí.
-*/
-int santa()
-{
-    printf("Santa: going to sleep\n");
-    exit(1);
-}
-
-/**
- * 1. Každý skřítek je unikátně identifikován číslem elfID. 0<elfID<=NE
- * 2. Po spuštění vypíše: A: Elf elfID: started
- * 3. Samostatnou práci modelujte voláním funkce usleep na náhodný čas v intervalu <0,TE>.
- * 4. Když skončí samostatnou práci, potřebuje pomoc od Santy. Vypíše: A: Elf elfID: need help
- *    a zařadí se do fronty před Santovou dílnou.
- * 5. Pokud je třetí ve frontě před dílnou, dílna je prázdná a na dílně není cedule „Vánoce – zavřeno“,
- *    tak společně s prvním a druhým z fronty vstoupí do dílny a vzbudí Santu.
- * 6. Skřítek v dílně dostane pomoc a vypíše: A: Elf elfID: get help (na pořadí pomoci skřítkům v
- *    dílně nezáleží)
- * 7. Po obdržení pomoci ihned odchází z dílny a pokud je dílna již volná, tak při odchodu z dílny
- *    může upozornit čekající skřítky, že už je volno (volitelné).
- * 8. Pokud je na dveřích dílny nápis „Vánoce – zavřeno“ vypíše: A: Elf elfID: taking holidays
- *    a proces ihned skončí.
- * 
- * index = elf index as it was created in loop
-*/
-int elf(const unsigned short index)
-{
-    printf("A: Elf %d: rstarted\n",index);
-    exit(1);
-}
-
-
-/**
- *  1. Každý sob je identifikován číslem rdID, 0<rdID<=NR2. Po spuštění vypíše: A: RD rdID: rstarted
- *  3. Čas na dovolené modelujte voláním usleep na náhodný interval <TR/2,TR>
- *  4. Po návratu z letní dovolené vypíše: A: RD rdID: return home
- *      a následně čeká, než ho Santa zapřáhne k saním. Pokud je posledním sobem, který se vrátil z
- *      dovolené, tak vzbudí Santu.
- *  5. Po zapřažení do saní vypíše: A: RD rdID: get hitched
- *      a následně proces končí.
- *
- *  index = reindeer index as it was created in loop
-*/
-int reindeer(const unsigned char index)
-{
-    printf("A: RD %d: rstarted\n",index);
-    exit(1);
-}
 
 
 
