@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     // fork 0 is child proces 
     pid_ret_code = fork(); //create proces from main 
     if(pid_ret_code == 0) //Santa process runs and end in santa() function 
-        santa(f, nr);
+        santa(f, nr, ne);
     else if(pid_ret_code == -1)
         goto error_5;  
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
             pid_ret_code = fork();
             
             if(pid_ret_code == 0) //Santa process runs and end in santa() function 
-                elf(f, i, ne, te);
+                elf(f, i, ne, te, nr);
             else if(pid_ret_code == -1)
                 goto error_5;   
         }
@@ -82,8 +82,13 @@ int main(int argc, char *argv[])
 
 
 
-    for (unsigned short i = 0; i < PROCESS_SUM ; i++) 
-        wait(NULL);
+    // main process waits for its children to exit
+
+    while(wait(NULL)) 
+        if (errno == ECHILD) 
+           break;
+
+    usleep(10000);
 
     if((shared_mem_destructor()) == false)
         goto error_8;
@@ -136,7 +141,7 @@ error_8: //MUN_MAP ERROR
  *  f = output file 
  *  nr = number of reindeers 
 */
-int santa(FILE *f, short nr)
+int santa(FILE *f, short nr, short ne)
 {
     printf("A: Santa: going to sleep\n");
     sem_wait(SEM_santa);
@@ -152,6 +157,10 @@ int santa(FILE *f, short nr)
                 sem_post(SEM_rd);
             }
             printf("A: Santa: Christmas started\n");
+            for(int i = 0; i < ne; i++)
+            {
+                sem_post(SEM_elf);
+            }
             break;
         }
         else if(shared_mem->elf_count > 2) // if there are about 3 elfes in row 
@@ -193,28 +202,35 @@ int santa(FILE *f, short nr)
  * ne = number of elfs
  * te = elf timer
 */
-int elf(FILE *f ,unsigned short index, short ne, short te)
+int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
 {
     printf("A: Elf %d: started\n",index);
-    
-    srand(time(NULL) * getpid());
-    usleep(rand() % (te * 1000 + 1)); //elf works alone 
 
-    printf("A: Elf %d: need help\n",index);
+    while (true)
+    {
+        srand(time(NULL) * getpid());
+        usleep(rand() % (te * 1000 + 1)); //elf works alone 
 
-    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
-    
-    shared_mem->elf_count++;
-    if(shared_mem->elf_count > 2) //if there are 3 elfs waiting 
-        sem_post(SEM_santa);
-     
-    sem_post(SEM_shared_mem);
-
-    sem_wait(SEM_elf);
-
-
-
-
+        sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+        
+        shared_mem->elf_count++;
+        if(shared_mem->elf_count > 2) //if there are 3 elfs waiting 
+            sem_post(SEM_santa);
+        
+        sem_post(SEM_shared_mem);
+        
+        sem_wait(SEM_elf);
+        if(nr == shared_mem->rein_count)
+        {
+            break;
+        }
+        else
+        {
+            printf("A: Elf %d: get help\n",index); //santa helped elf
+        }
+    }
+       
+    printf("A: Elf %d: taking holidays\n",index);
     exit(1);
 }
 

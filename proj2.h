@@ -119,7 +119,7 @@ bool is_number(char *str);
  *  5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
  *      a ihned proces končí.
 */
-int santa(FILE *f, short nr);
+int santa(FILE *f, short nr, short ne);
 
 
 /**
@@ -139,7 +139,7 @@ int santa(FILE *f, short nr);
  * 
  * index = elf index as it was created in loop
 */
-int elf(FILE *f ,unsigned short index, short ne, short te);
+int elf(FILE *f ,unsigned short index, short ne, short te, short nr);
 
 
 /**
