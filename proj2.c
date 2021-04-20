@@ -87,7 +87,6 @@ int main(int argc, char *argv[])
     // main process waits for its children to exit
     sem_wait(SEM_main);
 
-
     if((shared_mem_destructor()) == false)
         goto error_8;
     semaphore_destructor();
@@ -181,8 +180,8 @@ int santa(FILE *f, short nr, short ne)
                 sem_post(SEM_elf);
                 shared_mem->elf_count--;
                 sem_post(SEM_shared_mem);
-            
             }
+            
             sem_wait(SEM_get_helped); //wait for elfs to print message 
 
             message_print(f, SAN_MSG_SLEEP, SANTA, 0);    
@@ -252,6 +251,7 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         
         else
         {
+            
             message_print(f, ELF_MSG_G_HELP, ELF, index);
             
             sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
@@ -321,7 +321,7 @@ int reindeer(FILE *f, unsigned short index, short tr, short nr)
 
     // wait until all rd procces join 
     sem_wait(SEM_rd);
-    message_print(f, RD_MSG_RET, REINDEER, index);
+    message_print(f, RD_MSG_HIT, REINDEER, index);
 
 
     sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
@@ -361,69 +361,34 @@ void message_print(FILE *f, char message, char who, unsigned short index)
     if(who == SANTA)
     {
         if(message == SAN_MSG_SLEEP)
-        {
-            printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
             fprintf(f,"%d: Santa: going to sleep\n",shared_mem->line_counter);
-        } 
         else if(message == SAN_MSG_CLOSE)
-        {
-            printf("%d: Santa: closing workshop\n",shared_mem->line_counter);
             fprintf(f,"%d: Santa: closing workshop\n",shared_mem->line_counter);
-        }
         else if(message == SAN_MSG_XM_ST)
-        {
-            printf("%d: Santa: Christmas started\n",shared_mem->line_counter);
             fprintf(f,"%d: Santa: Christmas started\n",shared_mem->line_counter);
-        }
         else if(message == SAN_MSG_HE_EL)
-        {
-            printf("%d: Santa: helping elves\n",shared_mem->line_counter);
             fprintf(f, "%d: Santa: helping elves\n",shared_mem->line_counter);
-             
-        }
     }
     else if(who == ELF)
     {
         if(message == ELF_MSG_START)
-        {
-            printf("%d: Elf %d: started\n",shared_mem->line_counter, index);
             fprintf(f,"%d: Elf %d: started\n",shared_mem->line_counter, index);
-        }
         else if(message == ELF_MSG_N_HELP)
-        {
-            printf("%d: Elf %d: need help\n",shared_mem->line_counter, index); //santa helped elf
             fprintf(f,"%d: Elf %d: need help\n",shared_mem->line_counter, index); //santa helped elf
-        }
         else if(message == ELF_MSG_G_HELP)
-        {
-            printf("%d: Elf %d: get help\n",shared_mem->line_counter, index); //santa helped elf
             fprintf(f,"%d: Elf %d: get help\n",shared_mem->line_counter, index); //santa helped elf
-        }
         else if(message == ELF_MSG_HOLI)
-        {
-            printf("%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
             fprintf(f,"%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
-        }
     }
     else if(who == REINDEER)
     {
         if(message == RD_MSG_START)
-        {
-            printf("%d: RD %d: rstarted\n",shared_mem->line_counter ,index);
             fprintf(f,"%d: RD %d: rstarted\n",shared_mem->line_counter ,index);
-        }
         else if(message == RD_MSG_RET)
-        {
-            printf("%d: RD %d: return home\n",shared_mem->line_counter ,index);
             fprintf(f,"%d: RD %d: return home\n",shared_mem->line_counter ,index);
-        }
         else if(message == RD_MSG_HIT)
-        {
-            printf("%d: RD %d: get hitched\n",shared_mem->line_counter,index);
             fprintf(f,"%d: RD %d: get hitched\n",shared_mem->line_counter,index);
-        }
     }
-    
     fflush(f);
     sem_post(SEM_shared_mem);
 }

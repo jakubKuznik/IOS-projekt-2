@@ -7,7 +7,7 @@ CFLAGS = -g -std=gnu99 -pedantic -Wall -Wextra -pthread -lrt
 all: proj2 proj2.o
 #$< jmeno první závislosti		#$@ jmeno cile 		#$^ jmena vsech zavislosti
 
-FILES = proj2.c proj2.h Makefile
+FILES = *
 
 ############## proj2 ###############
 proj2: proj2.o
