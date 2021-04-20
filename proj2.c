@@ -15,6 +15,7 @@ sem_t *SEM_shared_mem;  //semaphore for entering shared memory
 sem_t *SEM_output_file; //semaphore for output file printing
 sem_t *SEM_get_helped;  //after santa helped elfes
 sem_t *SEM_hitched; //santa can start xmas after hitching 
+sem_t *SEM_main;
 
 shared_mem_t *shared_mem = NULL; //Shared memory for all procces
 
@@ -83,15 +84,9 @@ int main(int argc, char *argv[])
     else //pid is -1
         goto error_5;   
 
-
-
     // main process waits for its children to exit
+    sem_wait(SEM_main);
 
-    while(wait(NULL)) 
-        if (errno == ECHILD) 
-           break;
-
-    usleep(1000000);
 
     if((shared_mem_destructor()) == false)
         goto error_8;
@@ -188,7 +183,14 @@ int santa(FILE *f, short nr, short ne)
         else if(shared_mem->elf_count > 2) // if there are about 3 elfes in row 
         {
             sem_post(SEM_shared_mem);
-            printf("A: Santa: helping elves\n");
+
+
+            sem_wait(SEM_shared_mem);
+            shared_mem->line_counter++;
+            printf("%d: Santa: helping elves\n",shared_mem->line_counter);
+            sem_post(SEM_shared_mem); 
+            
+            
             sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
             shared_mem->elf_who_get_helped = 3;
             sem_post(SEM_shared_mem);
@@ -202,12 +204,29 @@ int santa(FILE *f, short nr, short ne)
             
             }
             sem_wait(SEM_get_helped); //wait for elfs to print message 
-            printf("A: Santa: going to sleep\n");
+
+
+            sem_wait(SEM_shared_mem);
+            shared_mem->line_counter++;
+            printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
+            sem_post(SEM_shared_mem); 
+        
         }
         sem_post(SEM_shared_mem);
     }
     sem_post(SEM_shared_mem);
     
+
+    /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
+    sem_wait(SEM_shared_mem);
+    shared_mem->end_santa = true;
+    if(shared_mem->end_elf   == true \
+    && shared_mem->end_rd    == true \
+    && shared_mem->end_santa == true)
+    {
+        sem_post(SEM_main);
+    }
+    sem_post(SEM_shared_mem); 
 
     exit(1);
 }
@@ -283,11 +302,27 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         }
     }
        
+    /*Trying to find out if all procceses are closed.*/
     sem_wait(SEM_shared_mem);
     shared_mem->line_counter++;
     printf("%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
     sem_post(SEM_shared_mem);
 
+
+    /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
+    sem_wait(SEM_shared_mem);
+    shared_mem->end_elf_count++;
+    if(shared_mem->end_elf_count == ne)
+        shared_mem->end_elf = true;
+
+    if(shared_mem->end_elf   == true \
+    && shared_mem->end_rd    == true \
+    && shared_mem->end_santa == true)
+    {
+        sem_post(SEM_main);
+    }
+
+    sem_post(SEM_shared_mem);
 
     exit(1);
 }
@@ -343,13 +378,26 @@ int reindeer(FILE *f, unsigned char index, short tr, short nr)
     sem_post(SEM_shared_mem);    
     
     sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
-
     shared_mem->hitched_rein++; 
     if(shared_mem->hitched_rein == nr)
         sem_post(SEM_hitched);
 
     sem_post(SEM_shared_mem);
 
+
+    /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
+    sem_wait(SEM_shared_mem);
+    shared_mem->end_rd_count++;
+    if(shared_mem->end_rd_count == nr)
+        shared_mem->end_rd = true;
+
+    if(shared_mem->end_elf   == true \
+    && shared_mem->end_rd    == true \
+    && shared_mem->end_santa == true)
+    {
+        sem_post(SEM_main);
+    }
+    sem_post(SEM_shared_mem);
 
     exit(1);
 }
@@ -371,6 +419,13 @@ bool shared_mem_constructor()
     shared_mem->elf_who_get_helped = 0;
     shared_mem->hitched_rein = 0;
     shared_mem->line_counter = 0;
+    shared_mem->end_elf_count = 0;
+    shared_mem->end_rd_count = 0;
+
+    shared_mem->end_santa = false;
+    shared_mem->end_elf = false;
+    shared_mem->end_rd = false;
+
     return true;
 }
 
@@ -404,6 +459,9 @@ void semaphore_destructor()
         sem_unlink(SEM_GET_HELPED);
     if(SEM_HITCHED != NULL)
         sem_unlink(SEM_HITCHED);
+    if(SEM_MAIN != NULL)
+        sem_unlink(SEM_MAIN);
+
 }
 
 /**
@@ -420,6 +478,8 @@ bool semaphore_constructor()
     SEM_output_file = sem_open(SEM_OUTPUT_FILE, O_CREAT | O_EXCL, 0666, 0);   
     SEM_get_helped = sem_open(SEM_GET_HELPED, O_CREAT | O_EXCL, 0666, 0);  
     SEM_hitched = sem_open(SEM_HITCHED, O_CREAT | O_EXCL, 0666, 0);  
+    SEM_main = sem_open(SEM_MAIN, O_CREAT | O_EXCL, 0666, 0);  
+    
 
     // If one of the sem_open failed 
     if( SEM_santa       == SEM_FAILED || \
@@ -428,6 +488,7 @@ bool semaphore_constructor()
         SEM_output_file == SEM_FAILED || \
         SEM_get_helped  == SEM_FAILED || \
         SEM_hitched     == SEM_FAILED || \
+        SEM_main        == SEM_FAILED || \
         SEM_shared_mem  == SEM_FAILED)
     {
         return false;

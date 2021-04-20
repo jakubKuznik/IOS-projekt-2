@@ -29,6 +29,11 @@ typedef struct shared
     int elf_who_get_helped; 
     int hitched_rein;
     int line_counter;
+    bool end_santa;
+    bool end_rd;
+    bool end_elf;
+    int end_elf_count;
+    int end_rd_count;
 }shared_mem_t;
 
 
@@ -45,6 +50,7 @@ typedef struct shared
 #define SEM_OUTPUT_FILE "/xkuzni04_ios_projekt2_output_file"
 #define SEM_GET_HELPED "/xkuzni04_ios_projekt2_get_helped"
 #define SEM_HITCHED "/xkuzni04_ios_projekt2_hitched"
+#define SEM_MAIN "/xkuzni04_ios_projekt2_main"
 
 /**************************/
 
