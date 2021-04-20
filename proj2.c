@@ -12,7 +12,9 @@ sem_t *SEM_santa;       //semaphore for santa
 sem_t *SEM_rd;          //rd semaphore 
 sem_t *SEM_elf;         //elf semaphore 
 sem_t *SEM_shared_mem;  //semaphore for entering shared memory
-sem_t *SEM_output_file; //semaphore for output file printing 
+sem_t *SEM_output_file; //semaphore for output file printing
+sem_t *SEM_get_helped;  //after santa helped elfes
+sem_t *SEM_hitched; //santa can start xmas after hitching 
 
 shared_mem_t *shared_mem = NULL; //Shared memory for all procces
 
@@ -36,6 +38,7 @@ int main(int argc, char *argv[])
         goto error_4;
 
     //semaphore initialization
+    semaphore_destructor();
     if((semaphore_constructor()) == false)
         goto error_6; //if not succes 
 
@@ -88,7 +91,7 @@ int main(int argc, char *argv[])
         if (errno == ECHILD) 
            break;
 
-    usleep(10000);
+    usleep(1000000);
 
     if((shared_mem_destructor()) == false)
         goto error_8;
@@ -143,7 +146,13 @@ error_8: //MUN_MAP ERROR
 */
 int santa(FILE *f, short nr, short ne)
 {
-    printf("A: Santa: going to sleep\n");
+    sem_wait(SEM_shared_mem);
+    shared_mem->line_counter++;
+    printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
+    
+    sem_post(SEM_shared_mem);
+
+
     sem_wait(SEM_santa);
 
     while (true) //reinders are not ready
@@ -151,12 +160,17 @@ int santa(FILE *f, short nr, short ne)
         sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
         if(shared_mem->rein_count == nr) // rn woke me up 
         {
+            sem_post(SEM_shared_mem);
+        
             printf("A: Santa: closing workshop\n");
             for(int i = 0; i < nr; i++) //hitch reindeer 
             {
                 sem_post(SEM_rd);
             }
+
+            sem_wait(SEM_hitched);            
             printf("A: Santa: Christmas started\n");
+
             for(int i = 0; i < ne; i++)
             {
                 sem_post(SEM_elf);
@@ -165,13 +179,21 @@ int santa(FILE *f, short nr, short ne)
         }
         else if(shared_mem->elf_count > 2) // if there are about 3 elfes in row 
         {
+            sem_post(SEM_shared_mem);
             printf("A: Santa: helping elves\n");
+            sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+            shared_mem->elf_who_get_helped = 3;
+            sem_post(SEM_shared_mem);
+        
             for(int i = 0; i < 3; i++)
             {
+                sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
                 sem_post(SEM_elf);
                 shared_mem->elf_count--;
+                sem_post(SEM_shared_mem);
             
             }
+            sem_wait(SEM_get_helped); //wait for elfs to print message 
             printf("A: Santa: going to sleep\n");
         }
         sem_post(SEM_shared_mem);
@@ -211,6 +233,8 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         srand(time(NULL) * getpid());
         usleep(rand() % (te * 1000 + 1)); //elf works alone 
 
+        printf("A: Elf %d: need help\n",index); //santa helped elf
+        
         sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
         
         shared_mem->elf_count++;
@@ -227,6 +251,13 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         else
         {
             printf("A: Elf %d: get help\n",index); //santa helped elf
+            sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+
+            shared_mem->elf_who_get_helped--;
+            if(shared_mem->elf_who_get_helped == 0)
+                sem_post(SEM_get_helped);
+
+            sem_post(SEM_shared_mem);
         }
     }
        
@@ -267,10 +298,20 @@ int reindeer(FILE *f, unsigned char index, short tr, short nr)
     
     sem_post(SEM_shared_mem);
 
+
     // wait until all rd procces join 
     sem_wait(SEM_rd);
 
     printf("A: RD %d: get hitched\n",index);
+    sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
+
+    shared_mem->hitched_rein++; 
+    if(shared_mem->hitched_rein == nr)
+        sem_post(SEM_hitched);
+
+    sem_post(SEM_shared_mem);
+
+
     exit(1);
 }
 
@@ -288,6 +329,9 @@ bool shared_mem_constructor()
     
     shared_mem->elf_count = 0;
     shared_mem->rein_count = 0;
+    shared_mem->elf_who_get_helped = 0;
+    shared_mem->hitched_rein = 0;
+    shared_mem->line_counter = 0;
     return true;
 }
 
@@ -307,11 +351,20 @@ bool shared_mem_destructor()
  */
 void semaphore_destructor()
 {
-    sem_unlink(SEM_SANTA);
-    sem_unlink(SEM_RD);
-    sem_unlink(SEM_ELF);
-    sem_unlink(SEM_SHARED_MEM);
-    sem_unlink(SEM_OUTPUT_FILE);
+    if(SEM_SANTA != NULL)
+        sem_unlink(SEM_SANTA);
+    if(SEM_RD != NULL)
+        sem_unlink(SEM_RD);
+    if(SEM_ELF != NULL)
+        sem_unlink(SEM_ELF);
+    if(SEM_SHARED_MEM != NULL)
+        sem_unlink(SEM_SHARED_MEM);
+    if(SEM_OUTPUT_FILE != NULL)
+        sem_unlink(SEM_OUTPUT_FILE);
+    if(SEM_GET_HELPED != NULL)
+        sem_unlink(SEM_GET_HELPED);
+    if(SEM_HITCHED != NULL)
+        sem_unlink(SEM_HITCHED);
 }
 
 /**
@@ -326,12 +379,16 @@ bool semaphore_constructor()
     SEM_elf = sem_open(SEM_ELF, O_CREAT | O_EXCL, 0666, 0);   
     SEM_shared_mem = sem_open(SEM_SHARED_MEM, O_CREAT | O_EXCL, 0666, 1);   
     SEM_output_file = sem_open(SEM_OUTPUT_FILE, O_CREAT | O_EXCL, 0666, 0);   
+    SEM_get_helped = sem_open(SEM_GET_HELPED, O_CREAT | O_EXCL, 0666, 0);  
+    SEM_hitched = sem_open(SEM_HITCHED, O_CREAT | O_EXCL, 0666, 0);  
 
     // If one of the sem_open failed 
     if( SEM_santa       == SEM_FAILED || \
         SEM_rd          == SEM_FAILED || \
         SEM_elf         == SEM_FAILED || \
         SEM_output_file == SEM_FAILED || \
+        SEM_get_helped  == SEM_FAILED || \
+        SEM_hitched     == SEM_FAILED || \
         SEM_shared_mem  == SEM_FAILED)
     {
         return false;

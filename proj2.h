@@ -25,7 +25,10 @@
 typedef struct shared
 {
     int rein_count; //Count how many reindeers are ready 
-    int elf_count;      
+    int elf_count;     
+    int elf_who_get_helped; 
+    int hitched_rein;
+    int line_counter;
 }shared_mem_t;
 
 
@@ -40,6 +43,8 @@ typedef struct shared
 #define SEM_ELF "/xkuzni04_ios_projekt2_elf"
 #define SEM_SHARED_MEM "/xkuzni04_ios_projekt2_shared_mem"
 #define SEM_OUTPUT_FILE "/xkuzni04_ios_projekt2_output_file"
+#define SEM_GET_HELPED "/xkuzni04_ios_projekt2_get_helped"
+#define SEM_HITCHED "/xkuzni04_ios_projekt2_hitched"
 
 /**************************/
 
