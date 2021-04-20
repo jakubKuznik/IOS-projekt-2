@@ -54,6 +54,25 @@ typedef struct shared
 
 /**************************/
 
+//Print informations 
+#define SANTA 1
+#define ELF 2
+#define REINDEER 3
+
+#define SAN_MSG_SLEEP 1
+#define SAN_MSG_CLOSE 2
+#define SAN_MSG_XM_ST 3
+#define SAN_MSG_HE_EL 4
+
+#define RD_MSG_START 1
+#define RD_MSG_RET 2
+#define RD_MSG_HIT 3
+
+#define ELF_MSG_START 1
+#define ELF_MSG_N_HELP 2
+#define ELF_MSG_G_HELP 3
+#define ELF_MSG_HOLI 4
+
 // Postion in arguments 
 #define NE 1
 #define NR 2
@@ -97,6 +116,14 @@ bool shared_mem_destructor();
  * Close semaphores.
  */
 void semaphore_destructor();
+
+/**
+ * Print message to file f
+ * message - what message
+ * who - SANTA | RD | ELF
+ */
+void message_print(FILE *f, char message, char who, unsigned short index);
+
 
 /**
  * Parse arguments. 
@@ -164,4 +191,4 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr);
  *
  *  index = reindeer index as it was created in loop
 */
-int reindeer(FILE *f, unsigned char index, short tr, short nr);
+int reindeer(FILE *f, unsigned short index, short tr, short nr);

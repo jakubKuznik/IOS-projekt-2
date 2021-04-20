@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     }
     else if(pid_ret_code > 0) // branch for  
     {
-        for(unsigned char i = 0; i < nr; i++)
+        for(unsigned short i = 0; i < nr; i++)
         {
             pid_ret_code = fork();
             if(pid_ret_code == 0) //Santa process runs and end in santa() function 
@@ -141,13 +141,8 @@ error_8: //MUN_MAP ERROR
 */
 int santa(FILE *f, short nr, short ne)
 {
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
     
-    sem_post(SEM_shared_mem);
-
-
+    message_print(f, SAN_MSG_SLEEP, SANTA, 0);
     sem_wait(SEM_santa);
 
     while (true) //reinders are not ready
@@ -156,40 +151,25 @@ int santa(FILE *f, short nr, short ne)
         if(shared_mem->rein_count == nr) // rn woke me up 
         {
             sem_post(SEM_shared_mem);
-        
-            sem_wait(SEM_shared_mem);
-            shared_mem->line_counter++;
-            printf("%d: Santa: closing workshop\n",shared_mem->line_counter);
-            sem_post(SEM_shared_mem); 
-            
+
+            message_print(f, SAN_MSG_CLOSE, SANTA, 0);
+
             for(int i = 0; i < nr; i++) //hitch reindeer 
-            {
                 sem_post(SEM_rd);
-            }
 
-            sem_wait(SEM_hitched);            
-            
-            sem_wait(SEM_shared_mem);
-            shared_mem->line_counter++;
-            printf("%d: Santa: Christmas started\n",shared_mem->line_counter);
-            sem_post(SEM_shared_mem); 
+            sem_wait(SEM_hitched); //while until all reindeer are hitch       
+ 
+            message_print(f, SAN_MSG_XM_ST, SANTA, 0);
 
-            for(int i = 0; i < ne; i++)
-            {
+            for(int i = 0; i < ne; i++) //free elfs
                 sem_post(SEM_elf);
-            }
             break;
         }
         else if(shared_mem->elf_count > 2) // if there are about 3 elfes in row 
         {
             sem_post(SEM_shared_mem);
 
-
-            sem_wait(SEM_shared_mem);
-            shared_mem->line_counter++;
-            printf("%d: Santa: helping elves\n",shared_mem->line_counter);
-            sem_post(SEM_shared_mem); 
-            
+            message_print(f, SAN_MSG_HE_EL, SANTA, 0); 
             
             sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
             shared_mem->elf_who_get_helped = 3;
@@ -205,12 +185,8 @@ int santa(FILE *f, short nr, short ne)
             }
             sem_wait(SEM_get_helped); //wait for elfs to print message 
 
+            message_print(f, SAN_MSG_SLEEP, SANTA, 0);    
 
-            sem_wait(SEM_shared_mem);
-            shared_mem->line_counter++;
-            printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
-            sem_post(SEM_shared_mem); 
-        
         }
         sem_post(SEM_shared_mem);
     }
@@ -253,23 +229,14 @@ int santa(FILE *f, short nr, short ne)
 */
 int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
 {
-
-
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: Elf %d: started\n",shared_mem->line_counter, index);
-    sem_post(SEM_shared_mem);
+    message_print(f, ELF_MSG_START, ELF, index);
 
     while (true)
     {
         srand(time(NULL) * getpid());
         usleep(rand() % (te * 1000 + 1)); //elf works alone 
 
-        sem_wait(SEM_shared_mem);
-        shared_mem->line_counter++;
-        printf("%d: Elf %d: need help\n",shared_mem->line_counter, index); //santa helped elf
-        sem_post(SEM_shared_mem);
-
+        message_print(f, ELF_MSG_N_HELP, ELF, index);
 
         sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
         
@@ -281,16 +248,11 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         
         sem_wait(SEM_elf);
         if(nr == shared_mem->rein_count)
-        {
             break;
-        }
+        
         else
         {
-
-            sem_wait(SEM_shared_mem);
-            shared_mem->line_counter++;
-            printf("%d: Elf %d: get help\n",shared_mem->line_counter, index); //santa helped elf
-            sem_post(SEM_shared_mem);           
+            message_print(f, ELF_MSG_G_HELP, ELF, index);
             
             sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
 
@@ -303,11 +265,7 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
     }
        
     /*Trying to find out if all procceses are closed.*/
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
-    sem_post(SEM_shared_mem);
-
+    message_print(f, ELF_MSG_HOLI, ELF, index);
 
     /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
     sem_wait(SEM_shared_mem);
@@ -342,23 +300,16 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
  *  tr = maximum in random time that sob have to wait 
  *  nr = number of reindeer created 
 */
-int reindeer(FILE *f, unsigned char index, short tr, short nr)
+int reindeer(FILE *f, unsigned short index, short tr, short nr)
 {
 
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: RD %d: rstarted\n",shared_mem->line_counter ,index);
-    sem_post(SEM_shared_mem);
+    message_print(f, RD_MSG_START, REINDEER, index);
 
-
+    // wait for random time 
     srand(time(NULL) * getpid());
     usleep(rand() % (tr*MAX_TE_RE - (tr*MAX_TE_RE)/2 + 1) + (tr*MAX_TE_RE)/1);
 
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: RD %d: return home\n",shared_mem->line_counter ,index);
-    sem_post(SEM_shared_mem);
-
+    message_print(f, RD_MSG_RET, REINDEER, index);
 
     sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
     shared_mem->rein_count++; // plus_one
@@ -368,15 +319,11 @@ int reindeer(FILE *f, unsigned char index, short tr, short nr)
     
     sem_post(SEM_shared_mem);
 
-
     // wait until all rd procces join 
     sem_wait(SEM_rd);
+    message_print(f, RD_MSG_RET, REINDEER, index);
 
-    sem_wait(SEM_shared_mem);
-    shared_mem->line_counter++;
-    printf("%d: RD %d: get hitched\n",shared_mem->line_counter);
-    sem_post(SEM_shared_mem);    
-    
+
     sem_wait(SEM_shared_mem); // write to shared memory only if there is noone
     shared_mem->hitched_rein++; 
     if(shared_mem->hitched_rein == nr)
@@ -402,6 +349,84 @@ int reindeer(FILE *f, unsigned char index, short tr, short nr)
     exit(1);
 }
 
+/**
+ * Print message to file f
+ * message - what message
+ * who - SANTA | RD | ELF
+ */
+void message_print(FILE *f, char message, char who, unsigned short index)
+{
+    sem_wait(SEM_shared_mem);
+    shared_mem->line_counter++;
+    if(who == SANTA)
+    {
+        if(message == SAN_MSG_SLEEP)
+        {
+            printf("%d: Santa: going to sleep\n",shared_mem->line_counter);
+            fprintf(f,"%d: Santa: going to sleep\n",shared_mem->line_counter);
+        } 
+        else if(message == SAN_MSG_CLOSE)
+        {
+            printf("%d: Santa: closing workshop\n",shared_mem->line_counter);
+            fprintf(f,"%d: Santa: closing workshop\n",shared_mem->line_counter);
+        }
+        else if(message == SAN_MSG_XM_ST)
+        {
+            printf("%d: Santa: Christmas started\n",shared_mem->line_counter);
+            fprintf(f,"%d: Santa: Christmas started\n",shared_mem->line_counter);
+        }
+        else if(message == SAN_MSG_HE_EL)
+        {
+            printf("%d: Santa: helping elves\n",shared_mem->line_counter);
+            fprintf(f, "%d: Santa: helping elves\n",shared_mem->line_counter);
+             
+        }
+    }
+    else if(who == ELF)
+    {
+        if(message == ELF_MSG_START)
+        {
+            printf("%d: Elf %d: started\n",shared_mem->line_counter, index);
+            fprintf(f,"%d: Elf %d: started\n",shared_mem->line_counter, index);
+        }
+        else if(message == ELF_MSG_N_HELP)
+        {
+            printf("%d: Elf %d: need help\n",shared_mem->line_counter, index); //santa helped elf
+            fprintf(f,"%d: Elf %d: need help\n",shared_mem->line_counter, index); //santa helped elf
+        }
+        else if(message == ELF_MSG_G_HELP)
+        {
+            printf("%d: Elf %d: get help\n",shared_mem->line_counter, index); //santa helped elf
+            fprintf(f,"%d: Elf %d: get help\n",shared_mem->line_counter, index); //santa helped elf
+        }
+        else if(message == ELF_MSG_HOLI)
+        {
+            printf("%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
+            fprintf(f,"%d: Elf %d: taking holidays\n",shared_mem->line_counter ,index);
+        }
+    }
+    else if(who == REINDEER)
+    {
+        if(message == RD_MSG_START)
+        {
+            printf("%d: RD %d: rstarted\n",shared_mem->line_counter ,index);
+            fprintf(f,"%d: RD %d: rstarted\n",shared_mem->line_counter ,index);
+        }
+        else if(message == RD_MSG_RET)
+        {
+            printf("%d: RD %d: return home\n",shared_mem->line_counter ,index);
+            fprintf(f,"%d: RD %d: return home\n",shared_mem->line_counter ,index);
+        }
+        else if(message == RD_MSG_HIT)
+        {
+            printf("%d: RD %d: get hitched\n",shared_mem->line_counter,index);
+            fprintf(f,"%d: RD %d: get hitched\n",shared_mem->line_counter,index);
+        }
+    }
+    
+    fflush(f);
+    sem_post(SEM_shared_mem);
+}
 
 /**
  * Alocate shared memory 
