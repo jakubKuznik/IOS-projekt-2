@@ -16,6 +16,7 @@ sem_t *SEM_output_file; //semaphore for output file printing
 sem_t *SEM_get_helped;  //after santa helped elfes
 sem_t *SEM_hitched; //santa can start xmas after hitching 
 sem_t *SEM_main;
+sem_t *SEM_write_file;
 
 shared_mem_t *shared_mem = NULL; //Shared memory for all procces
 
@@ -356,8 +357,10 @@ int reindeer(FILE *f, unsigned short index, short tr, short nr)
  */
 void message_print(FILE *f, char message, char who, unsigned short index)
 {
+    sem_wait(SEM_write_file);
     sem_wait(SEM_shared_mem);
     shared_mem->line_counter++;
+    sem_post(SEM_shared_mem);
     if(who == SANTA)
     {
         if(message == SAN_MSG_SLEEP)
@@ -390,7 +393,7 @@ void message_print(FILE *f, char message, char who, unsigned short index)
             fprintf(f,"%d: RD %d: get hitched\n",shared_mem->line_counter,index);
     }
     fflush(f);
-    sem_post(SEM_shared_mem);
+    sem_post(SEM_write_file);
 }
 
 /**
@@ -451,6 +454,8 @@ void semaphore_destructor()
         sem_unlink(SEM_HITCHED);
     if(SEM_MAIN != NULL)
         sem_unlink(SEM_MAIN);
+    if(SEM_WRITE_FILE != NULL)
+        sem_unlink(SEM_WRITE_FILE);
 
 }
 
@@ -469,6 +474,7 @@ bool semaphore_constructor()
     SEM_get_helped = sem_open(SEM_GET_HELPED, O_CREAT | O_EXCL, 0666, 0);  
     SEM_hitched = sem_open(SEM_HITCHED, O_CREAT | O_EXCL, 0666, 0);  
     SEM_main = sem_open(SEM_MAIN, O_CREAT | O_EXCL, 0666, 0);  
+    SEM_write_file = sem_open(SEM_WRITE_FILE, O_CREAT | O_EXCL, 0666, 1);
     
 
     // If one of the sem_open failed 
@@ -479,6 +485,7 @@ bool semaphore_constructor()
         SEM_get_helped  == SEM_FAILED || \
         SEM_hitched     == SEM_FAILED || \
         SEM_main        == SEM_FAILED || \
+        SEM_write_file  == SEM_FAILED || \
         SEM_shared_mem  == SEM_FAILED)
     {
         return false;
