@@ -83,7 +83,9 @@ int main(int argc, char *argv[])
         }
     }
     else //pid is -1
+    {
         goto error_5;   
+    }
 
     // main process waits for its children to exit
     sem_wait(SEM_main);
@@ -158,7 +160,6 @@ int santa(FILE *f, short nr, short ne)
                 sem_post(SEM_rd);
 
             sem_wait(SEM_hitched); //while until all reindeer are hitch       
- 
             message_print(f, SAN_MSG_XM_ST, SANTA, 0);
 
             for(int i = 0; i < ne; i++) //free elfs
@@ -182,20 +183,22 @@ int santa(FILE *f, short nr, short ne)
                 shared_mem->elf_count--;
                 sem_post(SEM_shared_mem);
             }
-            
             sem_wait(SEM_get_helped); //wait for elfs to print message 
-
             message_print(f, SAN_MSG_SLEEP, SANTA, 0);    
 
         }
         sem_post(SEM_shared_mem);
     }
-    sem_post(SEM_shared_mem);
+    //sem_post(SEM_shared_mem);
     
 
     /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
     sem_wait(SEM_shared_mem);
     shared_mem->end_santa = true;
+   /* 
+    if(shared_mem->end_rd == true && shared_mem->end_santa == true)
+        sem_post(SEM_main);
+    */
     if(shared_mem->end_elf   == true \
     && shared_mem->end_rd    == true \
     && shared_mem->end_santa == true)
@@ -203,8 +206,7 @@ int santa(FILE *f, short nr, short ne)
         sem_post(SEM_main);
     }
     sem_post(SEM_shared_mem); 
-
-    exit(1);
+    exit(0);
 }
 
 /**
@@ -229,6 +231,66 @@ int santa(FILE *f, short nr, short ne)
 */
 int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
 {
+
+    message_print(f, ELF_MSG_START, ELF, index);
+    while(true)
+    {
+        srand(time(NULL) * getpid());
+        usleep(rand() % (te * 1000 + 1)); //elf works alone 
+
+        message_print(f, ELF_MSG_N_HELP, ELF, index);
+
+        sem_wait(SEM_shared_mem);
+        shared_mem->elf_count++;
+        if(shared_mem->elf_count > 2)
+            sem_post(SEM_santa);
+        sem_post(SEM_shared_mem);
+
+
+        sem_wait(SEM_elf);
+        
+
+        
+        sem_wait(SEM_shared_mem);
+        if(shared_mem->end_rd == true)
+        {
+            sem_post(SEM_shared_mem);
+            message_print(f, ELF_MSG_HOLI, ELF, index);
+            break;
+        }
+        sem_post(SEM_shared_mem);
+
+        message_print(f, ELF_MSG_G_HELP, ELF, index);
+
+        sem_wait(SEM_shared_mem);
+        shared_mem->elf_who_get_helped--;
+        if(shared_mem->elf_who_get_helped == 0)
+        {
+            sem_post(SEM_get_helped);
+        }
+        sem_post(SEM_shared_mem);
+    }
+    
+    sem_wait(SEM_shared_mem);
+    shared_mem->end_elf_count++;
+
+    if(shared_mem->end_elf_count == (ne - 1))
+        shared_mem->end_elf = true;
+    
+    if(shared_mem->end_elf   == true \
+    && shared_mem->end_rd    == true \
+    && shared_mem->end_santa == true)
+    {
+        sem_post(SEM_main);
+    }
+    
+    sem_post(SEM_shared_mem);
+    
+
+    
+    exit(0);
+
+    /*
     message_print(f, ELF_MSG_START, ELF, index);
 
     while (true)
@@ -265,25 +327,25 @@ int elf(FILE *f ,unsigned short index, short ne, short te, short nr)
         }
     }
        
-    /*Trying to find out if all procceses are closed.*/
+    //Trying to find out if all procceses are closeda./
     message_print(f, ELF_MSG_HOLI, ELF, index);
 
-    /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
+    //LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN
     sem_wait(SEM_shared_mem);
     shared_mem->end_elf_count++;
+
+    */
+
+    /*
     if(shared_mem->end_elf_count == ne)
         shared_mem->end_elf = true;
+    */
 
-    if(shared_mem->end_elf   == true \
-    && shared_mem->end_rd    == true \
-    && shared_mem->end_santa == true)
-    {
-        sem_post(SEM_main);
-    }
 
+   /*
+    
     sem_post(SEM_shared_mem);
-
-    exit(1);
+    */
 }
 
 
@@ -336,18 +398,23 @@ int reindeer(FILE *f, unsigned short index, short tr, short nr)
     /*LOOK IF ALL THE PROCESSES ENDED SO WE CAN END MAIN*/ 
     sem_wait(SEM_shared_mem);
     shared_mem->end_rd_count++;
-    if(shared_mem->end_rd_count == nr)
+    if(shared_mem->end_rd_count == (nr -1))
         shared_mem->end_rd = true;
 
+    
+    
     if(shared_mem->end_elf   == true \
     && shared_mem->end_rd    == true \
     && shared_mem->end_santa == true)
     {
         sem_post(SEM_main);
     }
+    /*
+    if(shared_mem->end_rd == true && shared_mem->end_santa == true)
+        sem_post(SEM_main);
+    */
     sem_post(SEM_shared_mem);
-
-    exit(1);
+    exit(0);
 }
 
 /**

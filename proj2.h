@@ -52,7 +52,6 @@ typedef struct shared
 #define SEM_HITCHED "/xkuzni04_ios_projekt2_hitched"
 #define SEM_MAIN "/xkuzni04_ios_projekt2_main"
 #define SEM_WRITE_FILE "/xkuzni04_ios_projekt2_write_file"
-sem_t *SEM_write_file;
 
 /**************************/
 
