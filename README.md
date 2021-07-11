@@ -22,30 +22,21 @@ pomoc od Santy a zjistí, že je dílna zavřená.
 Podrobná specifikace úlohy
 Spuštění:
 $ ./proj2 NE NR TE TR
-•
-•
-•
-•
-•
+
 NE: počet skřítků. 0<NE<1000
 NR: počet sobů. 0<NR< 20
 TE: Maximální doba v milisekundách, po kterou skřítek pracuje samostatně. 0<=TE<=1000.
 TR: Maximální doba v milisekundách, po které se sob vrací z dovolené domů. 0<=RE<=1000.
 Všechny parametry jsou nezáporná celá čísla.
 Chybové stavy:
-•
-•
+
 Pokud některý ze vstupů nebude odpovídat očekávanému formátu nebo bude mimo povolený
 rozsah, program vytiskne chybové hlášení na standardní chybový výstup, uvolní všechny dosud
 alokované zdroje a ukončí se s kódem (exit code) 1.
 Pokud selže některá z operací se semafory, nebo sdílenou pamětí, postupujte stejně-- program
 vytiskne chybové hlášení na standardní chybový výstup, uvolní všechny dosud alokované
 zdroje a ukončí se s kódem (exit code) 1.Implementační detaily:
-•
-•
-•
-•
-•
+
 Každý proces vykonává své akce a současně zapisuje informace o akcích do souboru s názvem
 proj2.out. Součástí výstupních informací o akci je pořadové číslo A prováděné akce (viz popis
 výstupů). Akce se číslují od jedničky.
@@ -70,14 +61,7 @@ a pak jde ihned zapřahat soby do saní.
 5. Ve chvíli, kdy jsou zapřažení všichni soby vypíše: A: Santa: Christmas started
 a ihned proces končí.
 Proces Skřítek
-1.
-2.
-3.
-4.
-5.
-6.
-7.
-8.
+
 Každý skřítek je unikátně identifikován číslem elfID. 0<elfID<=NE
 Po spuštění vypíše: A: Elf elfID: started
 Samostatnou práci modelujte voláním funkce usleep na náhodný čas v intervalu <0,TE>.
@@ -101,11 +85,7 @@ dovolené, tak vzbudí Santu.
 a následně proces končí.
 Podmínky vypracování
 Obecné informace
-•
-•
-•
-•
-•
+
 Projekt implementujte v jazyce C. Komentujte zdrojové kódy, programujte přehledně. Součástí
 hodnocení bude i kvalita zdrojového kódu.
 Kontrolujte, zda se všechny procesy ukončují korektně a zda při ukončování správně uvolňujete
@@ -118,12 +98,7 @@ Poznámka k testování: Můžete si nasimulovat častější přepínání proc
 krátkého uspání po uvolnění semaforů apod. Pouze pro testovací účely, do finálního řešení
 nevkládejte!
 Překlad
-•
-•
-•
-•
-•
-•
+
 Pro překlad používejte nástroj make. Součástí odevzdání bude soubor Makefile.
 Překlad se provede příkazem make v adresáři, kde je umístěn soubor Makefile.
 Po překladu vznikne spustitelný soubor se jménem proj2, který bude umístěn ve stejném
@@ -133,11 +108,7 @@ Pokud to vaše řešení vyžaduje, lze přidat další přepínače pro linker 
 sdílené paměti, -pthread, -lrt , . . . ).
 Vaše řešení musí být možné přeložit a spustit na serveru merlin.
 Odevzdání
-•
-•
-•
-•
-•
+
 Součástí odevzdání budou pouze soubory se zdrojovými kódy (*. , *.h ) a soubor Makefile.
 Tyto soubory zabalte pomocí nástroje zip do archivu s názvem proj2.zip.
 Archiv vytvořte tak, aby po rozbalení byl soubor Makefile umístěn ve stejném adresáři, jako je
